@@ -69,8 +69,8 @@ const handleResponse = async (ctx, prompt) => {
     // Debugging: Log the entire response structure to analyze it
     console.log('API Response:', JSON.stringify(data, null, 2));
 
-    // Ensure the expected structure exists
-    const result = data.contents?.[0]?.parts?.[0]?.text;
+    // Extract the response text from the candidates array
+    const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!result) {
       throw new Error('No valid response from the Google API');
