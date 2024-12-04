@@ -50,7 +50,7 @@ const handleResponse = async (ctx, prompt) => {
     ctx.replyWithChatAction('typing');
 
     // Making the API request to the Google endpoint
-    let response = await fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -60,11 +60,12 @@ const handleResponse = async (ctx, prompt) => {
 
     // Check if the response is ok
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json(); // Get the response body for error details
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error.message}`);
     }
 
-    let data = await response.json();
-    let result = data.reply; // Adjust based on actual response structure from the Google API
+    const data = await response.json();
+    const result = data.contents[0].parts[0].text; // Adjust based on actual response structure from the Google API
 
     if (!result) {
       throw new Error('No valid response from the Google API');
@@ -73,7 +74,7 @@ const handleResponse = async (ctx, prompt) => {
     await ctx.reply(result);
   } catch (error) {
     console.error('Error from the Google API:', error);
-    await ctx.reply('An error occurred while processing your request.');
+    await ctx.reply(`An error occurred while processing your request: ${error.message}`);
   }
 };
 
