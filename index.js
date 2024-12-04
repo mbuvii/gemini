@@ -65,7 +65,12 @@ const handleResponse = async (ctx, prompt) => {
     }
 
     const data = await response.json();
-    const result = data.contents[0].parts[0].text; // Adjust based on actual response structure from the Google API
+
+    // Debugging: Log the entire response structure to analyze it
+    console.log('API Response:', JSON.stringify(data, null, 2));
+
+    // Ensure the expected structure exists
+    const result = data.contents?.[0]?.parts?.[0]?.text;
 
     if (!result) {
       throw new Error('No valid response from the Google API');
