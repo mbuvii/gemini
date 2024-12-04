@@ -4,82 +4,85 @@ import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import express from 'express';
 
+// Load environment variables
 dotenv.config();
 
+// Create a bot instance using the token from environment variables
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+// Initialize Express app
 const app = express();
 
-// Simple in-memory store for user contexts
-const userContexts = {};
-
-// Basic route for health check
+// Add a simple route for health checks
 app.get('/', (req, res) => {
   res.send('Bot is running');
 });
 
+// Middleware to parse JSON requests
+app.use(express.json());
+
 // Handle incoming messages
 bot.on('text', (ctx) => {
-  const userId = ctx.from.id; // Get user ID from the message
   const text = ctx.message.text;
-
-  // Initialize user's context if not present
-  if (!userContexts[userId]) {
-    userContexts[userId] = {
-      history: [], // History of messages
-    };
+  if (!text) {
+    return ctx.reply("Please provide some text.");
   }
 
-  // Add the incoming text to the user's history
-  userContexts[userId].history.push(text);
-
-  // Handle the response
-  handleResponse(ctx, text, userContexts[userId].history);
+  handleResponse(ctx, text);
 });
 
-// Function to handle API responses
-const handleResponse = async (ctx, prompt, history) => {
-  const guru1 = `https://api.gurusensei.workers.dev/llama?prompt=${encodeURIComponent(prompt)}`;
+// Function to handle API responses using Google API
+const handleResponse = async (ctx, prompt) => {
+  const apiKey = process.env.GOOGLE_API_KEY; // Use your Google API key from env variables
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          { text: prompt }
+        ]
+      }
+    ]
+  };
 
   try {
     ctx.replyWithChatAction('typing');
 
-    // First API call
-    let response = await fetch(guru1);
+    // Making the API request to the Google endpoint
+    let response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    // Check if the response is ok
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     let data = await response.json();
-    let result = data.response?.response;
+    let result = data.reply; // Adjust based on actual response structure from the Google API
 
     if (!result) {
-      throw new Error('No valid JSON response from the first API');
+      throw new Error('No valid response from the Google API');
     }
 
-    // Optionally, append the response to history
-    history.push(result);
-    
     await ctx.reply(result);
   } catch (error) {
-    console.error('Error from the first API:', error);
-
-    const guru2 = `https://ultimetron.guruapi.tech/gpt3?prompt=${encodeURIComponent(prompt)}`;
-
-    try {
-      // Second API call if the first fails
-      let response = await fetch(guru2);
-      let data = await response.json();
-      let result = data.completion;
-
-      // Append to history
-      history.push(result);
-
-      await ctx.reply(result);
-    } catch (secondError) {
-      console.error('Error from the second API:', secondError);
-      await ctx.reply('An error occurred while processing your request.');
-    }
+    console.error('Error from the Google API:', error);
+    await ctx.reply('An error occurred while processing your request.');
   }
 };
 
 // Start the bot
-bot.launch().then(() => console.log('Bot is running!')).catch(err => console.error('Error launching the bot:', err));
+bot.launch().then(() => {
+  console.log('Bot is running!');
+}).catch(err => {
+  console.error('Error launching the bot:', err);
+});
 
 // Start the Express server
 const PORT = process.env.PORT || 3000;
