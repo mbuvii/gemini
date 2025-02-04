@@ -34,7 +34,7 @@ bot.on('text', (ctx) => {
 // Function to handle API responses using Google API
 const handleResponse = async (ctx, prompt) => {
   const apiKey = process.env.GOOGLE_API_KEY; // Use your Google API key from env variables
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=${apiKey}`;
 
   const requestBody = {
     contents: [
